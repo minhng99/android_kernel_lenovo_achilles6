@@ -45,11 +45,12 @@ static ssize_t power_supply_show_property(struct device *dev,
 					  char *buf) {
 	static char *type_text[] = {
 		"Unknown", "Battery", "UPS", "Mains", "USB",
-		"USB_DCP", "USB_CDP", "USB_ACA", "USB_C",
+		"USB_DCP", "USB_CDP", "USB_ACA", "Wireless", "USB_C",
 		"USB_PD", "USB_PD_DRP"
 	};
 	static char *status_text[] = {
-		"Unknown", "Charging", "Discharging", "Not charging", "Full"
+		"Unknown", "Charging", "Discharging", "Not charging", "Full",
+		"Cmd discharging"
 	};
 	static char *charge_type[] = {
 		"Unknown", "N/A", "Trickle", "Fast"
@@ -69,6 +70,24 @@ static ssize_t power_supply_show_property(struct device *dev,
 	static char *scope_text[] = {
 		"Unknown", "System", "Device"
 	};
+	static char *batt_info[] = {
+		"L19D1P32,SCUD",
+		"L19D1P32,ATL",
+		"L16D2P31,SCUD"
+	};
+
+		static char *batt_id[] = {
+		"2,5000ma",
+		"1,5000ma",
+		"1,7000ma"
+	};
+
+		static char *batt_vendor[] = {
+		"SCUD",
+		"ATL",
+		"SCUD"
+	};
+
 	ssize_t ret = 0;
 	struct power_supply *psy = dev_get_drvdata(dev);
 	const ptrdiff_t off = attr - power_supply_attrs;
@@ -104,6 +123,12 @@ static ssize_t power_supply_show_property(struct device *dev,
 		return sprintf(buf, "%s\n", type_text[value.intval]);
 	else if (off == POWER_SUPPLY_PROP_SCOPE)
 		return sprintf(buf, "%s\n", scope_text[value.intval]);
+	else if (off == POWER_SUPPLY_PROP_batt_info)
+		return sprintf(buf, "%s\n", batt_info[value.intval]);
+	else if (off == POWER_SUPPLY_PROP_batt_id)
+		return sprintf(buf, "%s\n", batt_id[value.intval]);
+	else if (off == POWER_SUPPLY_PROP_batt_vendor)
+		return sprintf(buf, "%s\n", batt_vendor[value.intval]);
 	else if (off >= POWER_SUPPLY_PROP_MODEL_NAME)
 		return sprintf(buf, "%s\n", value.strval);
 
@@ -201,6 +226,12 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(scope),
 	POWER_SUPPLY_ATTR(charge_term_current),
 	POWER_SUPPLY_ATTR(calibrate),
+	POWER_SUPPLY_ATTR(charge_dock),
+	POWER_SUPPLY_ATTR(charge_usb),
+	POWER_SUPPLY_ATTR(batt_id),
+	POWER_SUPPLY_ATTR(batt_info),
+	POWER_SUPPLY_ATTR(batt_vendor),
+	POWER_SUPPLY_ATTR(batt_cap),
 	/* Local extensions */
 	POWER_SUPPLY_ATTR(usb_hc),
 	POWER_SUPPLY_ATTR(usb_otg),

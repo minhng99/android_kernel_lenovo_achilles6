@@ -88,31 +88,6 @@
 		(x)->i_mode = ((x)->i_mode & S_IFMT) | 0775;\
 	} while (0)
 
-/* OVERRIDE_CRED() and REVERT_CRED()
- *	OVERRIDE_CRED()
- *		backup original task->cred
- *		and modifies task->cred->fsuid/fsgid to specified value.
- *	REVERT_CRED()
- *		restore original task->cred->fsuid/fsgid.
- * These two macro should be used in pair, and OVERRIDE_CRED() should be
- * placed at the beginning of a function, right after variable declaration.
- */
-#define OVERRIDE_CRED(sdcardfs_sbi, saved_cred, info)		\
-	do {	\
-		saved_cred = override_fsids(sdcardfs_sbi, info->data);	\
-		if (!saved_cred)	\
-			return -ENOMEM;	\
-	} while (0)
-
-#define OVERRIDE_CRED_PTR(sdcardfs_sbi, saved_cred, info)	\
-	do {	\
-		saved_cred = override_fsids(sdcardfs_sbi, info->data);	\
-		if (!saved_cred)	\
-			return ERR_PTR(-ENOMEM);	\
-	} while (0)
-
-#define REVERT_CRED(saved_cred)	revert_fsids(saved_cred)
-
 /* Android 5.0 support */
 
 /* Permission mode for a specific node. Controls how file permissions
@@ -223,6 +198,8 @@ struct sdcardfs_mount_options {
 	bool gid_derivation;
 	bool default_normal;
 	unsigned int reserved_mb;
+	/* add for limit write to data partition */
+	uid_t reserved_uid;
 };
 
 struct sdcardfs_vfsmount_options {
@@ -628,10 +605,21 @@ static inline int check_min_free_space(struct dentry *dentry, size_t size, int d
 		/* not enough space */
 		if ((u64)size > avail)
 			return 0;
-
+	/* add for limit write to data partition, begin */
+		if (sbi->options.reserved_uid) {
+			uid_t current_uid = from_kuid(&init_user_ns, current_uid());
+			if (current_uid >= sbi->options.reserved_uid) {
+				if ((avail - size) > (sbi->options.reserved_mb * 1024 * 1024))
+					return 1;
+			} else {
+				return 1;
+			}
+		} else {
+	/* add for limit write to data partition, end */
 		/* enough space */
 		if ((avail - size) > (sbi->options.reserved_mb * 1024 * 1024))
 			return 1;
+		}/* add for limit write to data partition */
 
 		return 0;
 	} else
